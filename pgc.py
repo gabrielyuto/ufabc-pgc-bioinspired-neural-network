@@ -52,47 +52,47 @@ def bioinspired_neural_network(autapse, learning_factor, displacement_speed, is_
     
     n_columns, n_lines = P.shape
     w, mask = gennet_inh_lat(n_columns, 3, autapse)
-    n_neuronios = w.shape[0]
+    n_neurons = w.shape[0]
     
     # Parâmetros
-    shift = 0.5 * np.ones((n_neuronios, 1))
-    fator_aprendiz = learning_factor
-    velocidade_deslocamento = displacement_speed
-    epocas = 100
+    shift = 0.5 * np.ones((n_neurons, 1))
+    learning_factor = learning_factor
+    displacement_speed = displacement_speed
+    epochs = 110
     
     # Inicializações
     incw = np.zeros_like(w)
-    output_antes = np.zeros((n_neuronios, 1))
-    output = np.zeros_like(output_antes)
-    n_entradas, padroes = P.shape
-    camadas = 1
-    inter_totais = 1
+    output_before = np.zeros((n_neurons, 1))
+    output = np.zeros_like(output_before)
+    n_entries, standards = P.shape
+    layers = 1
+    inter_totals = 1
     
     output_graf = []
     
     # Treinamento
-    for i in range(epocas):
-        for j in range(padroes):
-            output = np.zeros((n_neuronios, 1))
-            output_antes = output.copy()
+    for i in range(epochs):
+        for j in range(standards):
+            output = np.zeros((n_neurons, 1))
+            output_before = output.copy()
             
             PAT = P[:, j].reshape(-1, 1)
-            output[:n_entradas, 0] = PAT.flatten()
+            output[:n_entries, 0] = PAT.flatten()
             
-            for k in range(camadas + 1):
+            for k in range(layers + 1):
                 w += incw
                 Inet = w @ output  # Multiplicação matricial
                 output = 1 / (1 + np.exp(-59 * (Inet - shift)))
                 output = (Inet > 0) * output  # Aplica limiar de ativação
-                output[:n_entradas, 0] = PAT.flatten()
+                output[:n_entries, 0] = PAT.flatten()
                 
-                incw = (fator_aprendiz * (output @ output_antes.T - (1 + 0.05) * np.ones_like(output) @ output_antes.T * w)) * mask
-                shift = (velocidade_deslocamento * output + shift) / (1 + velocidade_deslocamento)
-                output_antes = output.copy()
+                incw = (learning_factor * (output @ output_before.T - (1 + 0.05) * np.ones_like(output) @ output_before.T * w)) * mask
+                shift = (displacement_speed * output + shift) / (1 + displacement_speed)
+                output_before = output.copy()
             
-            if i >= (epocas - padroes):
+            if i >= (epochs - standards):
                 output_graf.append(output.flatten())
-                inter_totais += 1
+                inter_totals += 1
     
     output_graf = np.array(output_graf)
 
@@ -115,8 +115,8 @@ def generate_chromosome():
 
 # Função de avaliação
 def evaluate_function(chromo):
-    percentual_de_nao_sobreposicao = bioinspired_neural_network(chromo["param1"], chromo["param2"], chromo["param3"], False)
-    chromo["fitness"] = percentual_de_nao_sobreposicao
+    non_overlap_percentage = bioinspired_neural_network(chromo["param1"], chromo["param2"], chromo["param3"], False)
+    chromo["fitness"] = non_overlap_percentage
     return chromo
 
 # Seleção via roleta
@@ -163,9 +163,8 @@ def mutate(chromosome):
     return chromosome
 
 # Algoritmo Genético principal
-def algoritmo_genetico_principal():
+def main_genetic_algorithm():
     population = [generate_chromosome() for _ in range(10)]
-    best_chromosome = None
     best_chromosomes_in_round = []
     max_iterations = 120
     iteration = 0
@@ -199,7 +198,6 @@ def algoritmo_genetico_principal():
                 offspring_mutated = mutate(offspring)
                 new_population.append(offspring_mutated)
     
-            # Adiciona mais 5 chromossomos aleatorios na nova populacao
             for _ in range(6):
                 new_population.append(generate_chromosome())
             
@@ -216,12 +214,12 @@ def algoritmo_genetico_principal():
         return max(population, key=lambda x: x['fitness'])
 
 def genetic_optimizer():
-    solution = algoritmo_genetico_principal()
+    solution = main_genetic_algorithm()
     validador = True
 
     while validador == True:
         if len(solution) == 0 :
-            solution = algoritmo_genetico_principal()
+            solution = main_genetic_algorithm()
             validador = True
 
         else:
@@ -230,13 +228,13 @@ def genetic_optimizer():
                 validador = False
 
             else:
-                solution = algoritmo_genetico_principal()
+                solution = main_genetic_algorithm()
                 validador = True
 
     return solution            
 
 # Função para identificar qual neurônio acertou
-def identificar_neuronio_acerto(row):
+def identify_hit_neuron(row):
     if row[5] >= 0.7:
         return '5'
     elif row[6] >= 0.7:
@@ -254,15 +252,15 @@ def main():
   learning_factor = result['param2']
   displacement_speed = result['param3']
 
-  padroes = bioinspired_neural_network(autapse, learning_factor, displacement_speed, True)
-  df = pd.DataFrame(padroes)
+  standards = bioinspired_neural_network(autapse, learning_factor, displacement_speed, True)
+  df = pd.DataFrame(standards)
 
   df['Padrão'] = ['A', 'B', 'A', 'C', 'B', 'B', 'A', 'C', 'C']
-  df['Neurônio Acerto'] = df.apply(identificar_neuronio_acerto, axis=1)
+  df['Neurônio Acerto'] = df.apply(identify_hit_neuron, axis=1)
   
   print(df)
 
-  desempenho = performance_analysis(padroes, len(padroes))
+  desempenho = performance_analysis(standards, len(standards))
   print(f"\nDesempenho: {desempenho}\n")
   
   selected_columns = df[[5, 6, 7]]
